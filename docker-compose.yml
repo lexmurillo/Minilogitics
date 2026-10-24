@@ -1,0 +1,60 @@
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD en .env}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver2025_data:/var/opt/mssql
+    networks:
+      - minilogitics-net
+    restart: unless-stopped
+
+  packages-api:
+    image: packages-api:dev
+    container_name: packages-api
+    ports:
+      - "5073:8080"
+    environment:
+      ConnectionStrings__PackagesDb: "Server=sqlserver,1433;Database=PackagesDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True"
+    networks:
+      - minilogitics-net
+    restart: unless-stopped
+
+  tracking-api:
+    image: tracking-api:dev
+    container_name: tracking-api
+    ports:
+      - "5265:8080"
+    environment:
+      ConnectionStrings__TrackingDb: "Server=sqlserver,1433;Database=TrackingDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True"
+    networks:
+      - minilogitics-net
+    restart: unless-stopped
+
+  shipping-api:
+    image: shipping-api:dev
+    container_name: shipping-api
+    ports:
+      - "5247:8080"
+    environment:
+      ConnectionStrings__ShippingDb: "Server=sqlserver,1433;Database=ShippingDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True"
+      Services__PackagesUrl: "http://packages-api:8080/"
+      Services__TrackingUrl: "http://tracking-api:8080/"
+    networks:
+      - minilogitics-net
+    restart: unless-stopped
+
+networks:
+  minilogitics-net:
+    external: true
+
+volumes:
+  sqlserver2025_data:
+    external: true
+
